@@ -1,0 +1,24 @@
+{
+  "name": "docusign-POC",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "rsbuild dev --open",
+    "build": "rsbuild build",
+    "preview": "rsbuild preview"
+  },
+  "dependencies": {
+    "@react-pdf-viewer/core": "3.12.0",
+    "pdfjs-dist": "3.4.120",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "signature_pad": "^5.0.2"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "1.0.1-beta.6",
+    "@rsbuild/plugin-react": "1.0.1-beta.6",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.5.2"
+  }
+}
