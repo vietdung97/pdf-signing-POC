@@ -1,14 +1,23 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import "./Modal.css";
+import { Button } from "./ui/button";
 
 interface ModalProps {
   isShowing: boolean;
-  hide: () => void;
+  onClose: () => void;
+  onOk: () => void;
   headerTitle: string;
+  children: React.ReactNode;
 }
 
-const Modal = ({ isShowing, hide, headerTitle }: ModalProps) =>
+const Modal = ({
+  isShowing,
+  onClose,
+  onOk,
+  headerTitle,
+  children,
+}: ModalProps) =>
   isShowing
     ? ReactDOM.createPortal(
         <React.Fragment>
@@ -24,16 +33,18 @@ const Modal = ({ isShowing, hide, headerTitle }: ModalProps) =>
               <div className="modal-header">
                 <p>{headerTitle}</p>
               </div>
-              <div className="modal-footer">
-                <button
+              {children}
+              <div className="modal-footer flex justify-end gap-2">
+                <Button
                   type="button"
-                  className="modal-close-button"
-                  data-dismiss="modal"
-                  aria-label="Close"
-                  onClick={hide}
+                  variant={"outline"}
+                  onClick={onClose}
                 >
                   Close
-                </button>
+                </Button>
+                <Button type="button" onClick={onOk}>
+                  Done
+                </Button>
               </div>
             </div>
           </div>

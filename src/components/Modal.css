@@ -35,27 +35,3 @@
     display: flex;
     color: #2b2e36;
   }
-  
-  .modal-close-button {
-    font-size: 1.4rem;
-    font-weight: 700;
-    line-height: 1;
-    color: #000;
-    opacity: .3;
-    cursor: pointer;
-    border: none;
-  }
-  
-  button {
-    font-size: .9rem;
-    font-weight: 700;
-    border: none;
-    border-radius: 3px;
-    padding: .3rem 1rem;
-    margin-left: .5rem;
-  }
-  
-  .button-default {
-    background: #247BA0;
-    color: #fff;
-  }
