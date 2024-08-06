@@ -26,10 +26,10 @@ interface DrawCanvasExampleProps {
 }
 
 const SignatureCoordinates: Coordinate[] = [
-  { pageIndex: 1, left: 210, top: 700, id: Date.now() },
-  // { pageIndex: 1, x: 461, y: 700 },
-  { pageIndex: 2, left: 210, top: 700, id: Date.now() + 12353 },
-  // { pageIndex: 2, x: 461, y: 700 },
+  { pageIndex: 1, x: 210, y: 700, id: Date.now() },
+  { pageIndex: 1, x: 461, y: 700, id: Date.now() + 123 },
+  { pageIndex: 2, x: 210, y: 700, id: Date.now() + 12353 },
+  { pageIndex: 2, x: 461, y: 700, id: Date.now() + 646 },
 ];
 
 const workerUrl = new URL(
@@ -106,17 +106,17 @@ const DrawCanvasExample: React.FC<DrawCanvasExampleProps> = ({ fileUrl }) => {
 
     promises.push(
       signedSignature.map(async (item) => {
-        const { left, top, data, textData, pageIndex } = item;
+        const { x, y, data, textData, pageIndex } = item;
         const { textWidth, textHeight } = getSignatureDimension(textData, 20);
         const page = pdfDoc.getPage(pageIndex - 1);
         const { height } = page.getSize();
 
         const jpgImage = await pdfDoc.embedPng(data);
 
-        const safeTop = height - top - textHeight;
+        const safeTop = height - y - textHeight;
 
         page.drawImage(jpgImage, {
-          x: left,
+          x: x,
           y: safeTop,
           width: textWidth,
           height: textHeight,

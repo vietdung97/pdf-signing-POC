@@ -9,6 +9,8 @@ interface ModalProps {
   onOk: () => void;
   headerTitle: string;
   children: React.ReactNode;
+  disableClose?: boolean;
+  disableOk?: boolean;
 }
 
 const Modal = ({
@@ -17,6 +19,8 @@ const Modal = ({
   onOk,
   headerTitle,
   children,
+  disableClose = false,
+  disableOk = false,
 }: ModalProps) =>
   isShowing
     ? ReactDOM.createPortal(
@@ -39,10 +43,11 @@ const Modal = ({
                   type="button"
                   variant={"outline"}
                   onClick={onClose}
+                  disabled={disableClose}
                 >
                   Close
                 </Button>
-                <Button type="button" onClick={onOk}>
+                <Button type="button" onClick={onOk} disabled={disableOk}>
                   Done
                 </Button>
               </div>

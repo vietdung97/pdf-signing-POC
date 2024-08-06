@@ -7,8 +7,8 @@ import { cn, getSignatureDimension } from "../lib/utils";
 import { getFontEmbedCSS, toPng } from "html-to-image";
 
 export interface Coordinate {
-  top: number;
-  left: number;
+  x: number;
+  y: number;
   pageIndex: number;
   id: number;
 }
@@ -19,16 +19,13 @@ export interface SignatureData extends Coordinate {
 
 interface SignatureBoxProps {
   coordinate: Coordinate;
-  onSigned: (
-    signature: string,
-    options: SignatureData
-  ) => void;
+  onSigned: (signature: string, options: SignatureData) => void;
 }
 
 const FONTS = ["Figtree", "Caveat", "Pacifico", "DancingScript"];
 
 const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
-  const { top, left } = coordinate;
+  const { x, y } = coordinate;
   const { isShowing, toggle } = useModal();
   const [selectedFont, setSelectedFont] = React.useState(FONTS[0]);
   const [signature, setSignature] = React.useState("");
@@ -41,18 +38,15 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
     }
 
     try {
-      const oldSignature = document.querySelector(
-        `[data-id='${coordinate.id}']`
-      );
-      if (oldSignature) oldSignature.remove();
+      const offScreenContainer = document.createElement("div");
+      offScreenContainer.style.position = "absolute";
+      offScreenContainer.style.top = "-9999px";
+      offScreenContainer.style.left = "-9999px";
+      document.body.appendChild(offScreenContainer);
 
       const domNode = document.createElement("div");
       const fontSize = 160;
-      const { textWidth } = getSignatureDimension(
-        signature,
-        fontSize
-      );
-      domNode.setAttribute("data-id", `${coordinate.id}`);
+      const { textWidth } = getSignatureDimension(signature, fontSize);
       domNode.innerHTML = signature;
       domNode.style.fontFamily = selectedFont;
       domNode.style.fontSize = fontSize + "px";
@@ -60,17 +54,16 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
       domNode.style.top = "0px";
       domNode.style.left = "-8px";
       domNode.style.zIndex = "-9999";
-      domNode.style.width = `${textWidth + 8}px`;
-      domNodeRef?.current?.appendChild(domNode);
-
-      const fontEmbedCSS = await getFontEmbedCSS(domNode);
+      domNode.style.width = `${textWidth + fontSize}px`;
+      offScreenContainer.appendChild(domNode);
 
       const dataUrl = await toPng(domNode, {
-        fontEmbedCSS,
         quality: 1,
         pixelRatio: 1,
       });
-      domNodeRef?.current?.removeChild(domNode);
+
+      offScreenContainer.removeChild(domNode);
+      document.body.removeChild(offScreenContainer);
 
       setSignatureBase64(dataUrl);
       onSigned(dataUrl, { ...coordinate, textData: signature });
@@ -81,7 +74,7 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
   };
 
   return (
-    <div className="signature-box" style={{ top, left }}>
+    <div className="signature-box" style={{ top: y, left: x }}>
       <div ref={domNodeRef} onClick={toggle}>
         {signatureBase64 ? (
           <p className={cn("text-xl", `font-${selectedFont}`)}>{signature}</p>
@@ -94,6 +87,7 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
         isShowing={isShowing}
         onClose={toggle}
         onOk={handleSign}
+        disableOk={!signature}
         headerTitle={"Add Signature"}
       >
         <div className="mb-2">

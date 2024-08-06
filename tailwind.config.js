@@ -20,12 +20,6 @@ export default {
         "2xl": "1400px",
       },
     },
-    fontFamily: {
-      Figtree: ['"Figtree"', ...defaultTheme.fontFamily.sans],
-      Caveat: ['"Caveat"', 'cursive'],
-      Pacifico: ['"Pacifico"'],
-      DancingScript: ['"Dancing Script"', 'cursive'],
-    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
