@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.yarn/cache/*
+.yarn/unplugged/*
+.yarn/install-state.gz
+.yarn/versions/*
+.yarn/releases/*
+.yarn/sdks/*
+.pnp.*

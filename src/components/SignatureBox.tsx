@@ -1,10 +1,11 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import useModal from "../hooks/useModal";
 import Modal from "./Modal";
-import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn, getSignatureDimension } from "../lib/utils";
 import { getFontEmbedCSS, toPng } from "html-to-image";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TypeTab from "./TypeTab";
+import DrawTab, { DrawTabRef } from "./DrawTab";
 
 export interface Coordinate {
   x: number;
@@ -19,24 +20,27 @@ export interface SignatureData extends Coordinate {
 
 interface SignatureBoxProps {
   coordinate: Coordinate;
-  onSigned: (signature: string, options: SignatureData) => void;
+  onSigned: (dataURL: string, options: SignatureData) => void;
 }
-
-const FONTS = ["Figtree", "Caveat", "Pacifico", "DancingScript"];
 
 const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
   const { x, y } = coordinate;
   const { isShowing, toggle } = useModal();
-  const [selectedFont, setSelectedFont] = React.useState(FONTS[0]);
-  const [signature, setSignature] = React.useState("");
-  const [signatureBase64, setSignatureBase64] = React.useState("");
-  const domNodeRef = useRef<HTMLElement>(null);
+  const [selectedTab, setSelectedTab] = useState("draw");
+  const [signedData, setSignedData] = useState<any>();
 
-  const handleSign = async () => {
-    if (domNodeRef.current === null) {
-      return;
-    }
+  const [signatureBase64, setSignatureBase64] = useState("");
+  const [drawBase64, setDrawBase64] = useState("");
+  const [disableOk, setDisableOk] = useState(true);
+  const drawTabRef = useRef<DrawTabRef>(null);
 
+  const handleTypeSign = async ({
+    signature,
+    selectedFont,
+  }: {
+    signature: string;
+    selectedFont: string;
+  }) => {
     try {
       const offScreenContainer = document.createElement("div");
       offScreenContainer.style.position = "absolute";
@@ -57,7 +61,10 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
       domNode.style.width = `${textWidth + fontSize}px`;
       offScreenContainer.appendChild(domNode);
 
+      const fontEmbedCSS = await getFontEmbedCSS(domNode);
+
       const dataUrl = await toPng(domNode, {
+        fontEmbedCSS,
         quality: 1,
         pixelRatio: 1,
       });
@@ -73,54 +80,94 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
     }
   };
 
+  const handleOk = async () => {
+    if (selectedTab === "draw") {
+      const dataUrl = drawTabRef.current?.toPng();
+      if (dataUrl) {
+        setDrawBase64(dataUrl);
+        onSigned(dataUrl, { ...coordinate, textData: "" });
+        toggle();
+      }
+    }
+
+    if (selectedTab === "type") {
+      const { signature, selectedFont } = signedData;
+      if (signature) {
+        await handleTypeSign({ signature, selectedFont });
+      }
+    }
+  };
+
+  const changeDataTypeTab = (data: {
+    signature: string;
+    selectedFont: string;
+  }) => {
+    setSignedData(data);
+    setDisableOk(!data.signature);
+  };
+
+  const onEndDraw = () => {
+    setDisableOk(false);
+  };
+
+  const onClear = () => {
+    setDisableOk(true);
+  };
+
+  const openModal = () => {
+    toggle();
+    setDrawBase64("");
+    setSignatureBase64("");
+  };
+
+  const renderTempSignature = () => {
+    if (selectedTab === "draw" && drawBase64) {
+      return (
+        <img src={drawBase64} alt="signature" className="w-[100px] h-[50px]" />
+      );
+    }
+
+    if (selectedTab === "type" && signatureBase64) {
+      const { signature, selectedFont } = signedData;
+      return (
+        <p className={cn("text-xl", `font-${selectedFont}`)}>{signature}</p>
+      );
+    }
+
+    return <p>Sign here</p>;
+  };
+
   return (
     <div className="signature-box" style={{ top: y, left: x }}>
-      <div ref={domNodeRef} onClick={toggle}>
-        {signatureBase64 ? (
-          <p className={cn("text-xl", `font-${selectedFont}`)}>{signature}</p>
-        ) : (
-          <p>Sign here</p>
-        )}
-      </div>
+      <div onClick={openModal}>{renderTempSignature()}</div>
 
       <Modal
         isShowing={isShowing}
         onClose={toggle}
-        onOk={handleSign}
-        disableOk={!signature}
+        onOk={handleOk}
+        disableOk={disableOk}
         headerTitle={"Add Signature"}
       >
-        <div className="mb-2">
-          <Input
-            type="text"
-            placeholder="Signature"
-            value={signature}
-            className={cn("text-center text-2xl h-14", `font-${selectedFont}`)}
-            onChange={(e) => setSignature(e.target.value)}
-          />
-
-          <RadioGroup
-            className={cn("flex flex-wrap gap-2 mt-2")}
-            value={selectedFont}
-          >
-            {FONTS.map((font) => (
-              <div
-                className={cn(
-                  "flex items-center space-x-2 w-[calc(50%-0.5rem)]",
-                  `font-${font} text-xl px-2 py-1 rounded-md`
-                )}
-              >
-                <RadioGroupItem
-                  value={font}
-                  onClick={() => setSelectedFont(font)}
-                />
-                <p className={`font-${font}`}>
-                  {signature ? signature : "Signature"}
-                </p>
-              </div>
-            ))}
-          </RadioGroup>
-        </div>
+        <Tabs
+          value={selectedTab}
+          className="w-full my-4"
+          onValueChange={setSelectedTab}
+        >
+          <TabsList className="w-full">
+            <TabsTrigger value="draw" className="w-full">
+              Draw
+            </TabsTrigger>
+            <TabsTrigger value="type" className="w-full">
+              Type
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="draw" className="w-full">
+            <DrawTab ref={drawTabRef} onEndDraw={onEndDraw} onClear={onClear} />
+          </TabsContent>
+          <TabsContent value="type" className="w-full">
+            <TypeTab onChangeData={changeDataTypeTab} />
+          </TabsContent>
+        </Tabs>
       </Modal>
     </div>
   );

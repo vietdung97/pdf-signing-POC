@@ -15,12 +15,12 @@ import SignatureBox, {
 import ReactDOM from "react-dom";
 import { PDFDocument } from "pdf-lib";
 import { saveAs } from "file-saver";
+import { getSignatureDimension } from "./lib/utils";
 
 // Import the styles
 import "./App.css";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
-import { getSignatureDimension } from "./lib/utils";
 interface DrawCanvasExampleProps {
   fileUrl: string;
 }
@@ -107,7 +107,13 @@ const DrawCanvasExample: React.FC<DrawCanvasExampleProps> = ({ fileUrl }) => {
     promises.push(
       signedSignature.map(async (item) => {
         const { x, y, data, textData, pageIndex } = item;
-        const { textWidth, textHeight } = getSignatureDimension(textData, 20);
+        let { textWidth, textHeight } = getSignatureDimension(textData, 20);
+
+        if (!textData) {
+          textWidth = 100;
+          textHeight = 50;
+        }
+
         const page = pdfDoc.getPage(pageIndex - 1);
         const { height } = page.getSize();
 
