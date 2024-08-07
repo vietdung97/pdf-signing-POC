@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import useModal from "../hooks/useModal";
 import Modal from "./Modal";
 import { cn, getSignatureDimension } from "../lib/utils";
