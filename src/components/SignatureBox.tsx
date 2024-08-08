@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback, memo } from "react";
 import useModal from "../hooks/useModal";
 import Modal from "./Modal";
 import { cn, getSignatureDimension } from "../lib/utils";
@@ -23,24 +23,17 @@ interface SignatureBoxProps {
   onSigned: (dataURL: string, options: SignatureData) => void;
 }
 
-const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
+const SignatureBox = memo(({ coordinate, onSigned }: SignatureBoxProps) => {
   const { x, y } = coordinate;
   const { isShowing, toggle } = useModal();
   const [selectedTab, setSelectedTab] = useState("draw");
   const [signedData, setSignedData] = useState<any>();
-
   const [signatureBase64, setSignatureBase64] = useState("");
   const [drawBase64, setDrawBase64] = useState("");
   const [disableOk, setDisableOk] = useState(true);
   const drawTabRef = useRef<DrawTabRef>(null);
 
-  const handleTypeSign = async ({
-    signature,
-    selectedFont,
-  }: {
-    signature: string;
-    selectedFont: string;
-  }) => {
+  const handleTypeSign = useCallback(async ({ signature, selectedFont }: { signature: string; selectedFont: string; }) => {
     try {
       const offScreenContainer = document.createElement("div");
       offScreenContainer.style.position = "absolute";
@@ -78,9 +71,9 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
     } catch (error) {
       console.error("Failed to capture image:", error);
     }
-  };
+  }, [coordinate, onSigned, toggle]);
 
-  const handleOk = async () => {
+  const handleOk = useCallback(async () => {
     if (selectedTab === "draw") {
       const dataUrl = drawTabRef.current?.toPng();
       if (dataUrl) {
@@ -96,31 +89,28 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
         await handleTypeSign({ signature, selectedFont });
       }
     }
-  };
+  }, [selectedTab, signedData, coordinate, onSigned, toggle, handleTypeSign]);
 
-  const changeDataTypeTab = (data: {
-    signature: string;
-    selectedFont: string;
-  }) => {
+  const changeDataTypeTab = useCallback((data: { signature: string; selectedFont: string; }) => {
     setSignedData(data);
     setDisableOk(!data.signature);
-  };
+  }, []);
 
-  const onEndDraw = () => {
+  const onEndDraw = useCallback(() => {
     setDisableOk(false);
-  };
+  }, []);
 
-  const onClear = () => {
+  const onClear = useCallback(() => {
     setDisableOk(true);
-  };
+  }, []);
 
-  const openModal = () => {
+  const openModal = useCallback(() => {
     toggle();
     setDrawBase64("");
     setSignatureBase64("");
-  };
+  }, [toggle]);
 
-  const renderTempSignature = () => {
+  const renderTempSignature = useCallback(() => {
     if (selectedTab === "draw" && drawBase64) {
       return (
         <img src={drawBase64} alt="signature" className="w-[100px] h-[50px]" />
@@ -135,7 +125,7 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
     }
 
     return <p>Sign here</p>;
-  };
+  }, [selectedTab, drawBase64, signatureBase64, signedData]);
 
   return (
     <div className="signature-box" style={{ top: y, left: x }}>
@@ -171,6 +161,6 @@ const SignatureBox = ({ coordinate, onSigned }: SignatureBoxProps) => {
       </Modal>
     </div>
   );
-};
+});
 
 export default SignatureBox;

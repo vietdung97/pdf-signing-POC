@@ -21,9 +21,6 @@ import { getSignatureDimension } from "./lib/utils";
 import "./App.css";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
-interface DrawCanvasExampleProps {
-  fileUrl: string;
-}
 
 const SignatureCoordinates: Coordinate[] = [
   { pageIndex: 1, x: 210, y: 700, id: Date.now() },
@@ -36,26 +33,17 @@ const workerUrl = new URL(
   "https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js"
 ).toString();
 
-const DrawCanvasExample: React.FC<DrawCanvasExampleProps> = ({ fileUrl }) => {
-  const [signedSignature, setSignedSignature] = React.useState<
-    Array<SignatureData & { data: string }>
-  >([]);
+const createNodeFromComponent = (
+  Component: React.ElementType,
+  props: object
+) => {
+  const newNode = document.createElement("div");
+  ReactDOM.render(<Component {...props} />, newNode);
+  return newNode;
+};
 
-  const createNodeFromComponent = (
-    Component: React.ElementType,
-    props: object
-  ) => {
-    // Create a new DOM node
-    const newNode = document.createElement("div");
-
-    // Render the React component into the new DOM node
-    ReactDOM.render(<Component {...props} />, newNode);
-
-    // Return the newly created node
-    return newNode;
-  };
-
-  const customCanvasPlugin = (): Plugin => {
+const useCustomCanvasPlugin = (onSigned: (data: string, opts: SignatureData) => void): Plugin => {
+  return React.useMemo(() => {
     const onCanvasLayerRender = (e: PluginOnCanvasLayerRender) => {
       if (e.status !== LayerRenderStatus.DidRender) {
         return;
@@ -83,28 +71,34 @@ const DrawCanvasExample: React.FC<DrawCanvasExampleProps> = ({ fileUrl }) => {
     return {
       onCanvasLayerRender,
     };
-  };
+  }, [onSigned]);
+};
 
-  const onSigned = (data: string, opts: SignatureData) => {
+const DrawCanvasExample: React.FC<{ fileUrl: string }> = ({ fileUrl }) => {
+  const [signedSignature, setSignedSignature] = React.useState<
+    Array<SignatureData & { data: string }>
+  >([]);
+
+  const onSigned = React.useCallback((data: string, opts: SignatureData) => {
     setSignedSignature((prev) => {
       const index = prev.findIndex((item) => item.id === opts.id);
       if (index !== -1) {
-        prev[index] = { ...opts, data };
-        return [...prev];
+        const updated = [...prev];
+        updated[index] = { ...opts, data };
+        return updated;
       }
       return [...prev, { ...opts, data }];
     });
-  };
+  }, []);
 
-  const customCanvasPluginInstance = customCanvasPlugin();
+  const customCanvasPluginInstance = useCustomCanvasPlugin(onSigned);
 
-  const download = async () => {
+  const download = React.useCallback(async () => {
     const resPDf = await fetch(fileUrl);
     const buffer = await resPDf.arrayBuffer();
     const pdfDoc = await PDFDocument.load(buffer);
-    const promises: any = [];
 
-    promises.push(
+    await Promise.all(
       signedSignature.map(async (item) => {
         const { x, y, data, textData, pageIndex } = item;
         let { textWidth, textHeight } = getSignatureDimension(textData, 20);
@@ -130,19 +124,14 @@ const DrawCanvasExample: React.FC<DrawCanvasExampleProps> = ({ fileUrl }) => {
       })
     );
 
-    await Promise.all(promises);
-
     const modifiedPdfBytes = await pdfDoc.save();
-
     const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
     saveAs(blob, Date.now() + "_signed.pdf");
-  };
+  }, [fileUrl, signedSignature]);
 
   return (
     <React.Fragment>
-      <button style={{}} onClick={download}>
-        Download
-      </button>
+      <button onClick={download}>Download</button>
       <Viewer
         fileUrl={fileUrl}
         plugins={[customCanvasPluginInstance]}
